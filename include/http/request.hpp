@@ -1,8 +1,8 @@
-#include <string>
-#include <unordered_map>
-
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
+
+#include <string>
+#include <unordered_map>
 
 struct Request {
     std::string method;   // "GET", "POST", ...
