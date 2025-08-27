@@ -27,6 +27,7 @@ class Connection {
         void close();
         void registerWithKqueue();
         void unregisterFromKqueue();
+        bool isCompleteHttpRequest(const std::string& data);
 
         int sockfd;
         int kq;

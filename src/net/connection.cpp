@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sys/event.h>
 #include <cstring>
+#include <errno.h> 
 
 Connection::Connection(int sockfd, int kq, Router& router) : sockfd(sockfd), kq(kq), router(router), closed(false) {
     registerWithKqueue();
@@ -26,19 +27,41 @@ bool Connection::isClosed() const {
 
 void Connection::read() {
     char buffer[4096];
-    int bytes = recv(sockfd, buffer, sizeof(buffer), 0);
+    std::string received_data;
+    int total_bytes = 0;
     
-    if (bytes <= 0) {
-        close();
-        return;
+    while (true) {
+        int bytes = recv(sockfd, buffer, sizeof(buffer), 0);
+        
+        if (bytes < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            }
+            close();
+            return;
+        }
+        
+        if (bytes == 0) {
+            close();
+            return;
+        }
+        
+        received_data.append(buffer, bytes);
+        total_bytes += bytes;
+        
+        if (isCompleteHttpRequest(received_data)) {
+            break;
+        }
+        
+        if (total_bytes > 1024 * 1024) {
+            std::cerr << "Request too large, closing connection" << std::endl;
+            close();
+            return;
+        }
     }
     
-    // Parse the HTTP request
-    std::string rawData(buffer, bytes);
     Request request;
-    
-    if (!HttpParser::parseRequest(rawData, request)) {
-        // Send 400 Bad Request if parsing fails
+    if (!HttpParser::parseRequest(received_data, request)) {
         std::string response = "HTTP/1.1 400 Bad Request\r\n"
                                "Content-Length: 0\r\n\r\n";
         send(sockfd, response.c_str(), response.size(), 0);
@@ -46,16 +69,13 @@ void Connection::read() {
         return;
     }
     
-    // Log the parsed request
     std::cout << "Received " << request.method << " request for " << request.path << std::endl;
     
-    // Use the stored router to handle the HTTP request
     Response response = router.route(request);
     std::string responseStr = response.to_string();
     
     send(sockfd, responseStr.c_str(), responseStr.size(), 0);
     
-    // Close the connection after sending response (HTTP/1.0 style)
     close();
 }
 
@@ -80,4 +100,30 @@ void Connection::unregisterFromKqueue() {
     struct kevent ev_set;
     EV_SET(&ev_set, sockfd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
     kevent(kq, &ev_set, 1, nullptr, 0, nullptr);
+}
+
+bool Connection::isCompleteHttpRequest(const std::string& data) {
+    size_t header_end = data.find("\r\n\r\n");
+    if (header_end == std::string::npos) {
+        return false;
+    }
+    
+    size_t content_length_pos = data.find("Content-Length:");
+    if (content_length_pos != std::string::npos) {
+        size_t line_end = data.find("\r\n", content_length_pos);
+        if (line_end != std::string::npos) {
+            std::string length_str = data.substr(content_length_pos + 15, 
+                                               line_end - content_length_pos - 15);
+            try {
+                int content_length = std::stoi(length_str);
+                size_t body_start = header_end + 4;
+                if (data.length() < body_start + content_length) {
+                    return false;
+                }
+            } catch (const std::exception&) {
+            }
+        }
+    }
+    
+    return true;
 }

@@ -13,5 +13,4 @@ add_executable(http-server
     src/net/connection.cpp
     src/http/router.cpp
     src/http/parser.cpp
-    src/http/response.cpp
 )
