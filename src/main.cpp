@@ -119,7 +119,10 @@ void json_status_handler(const Request& req, Response& resp) {
     resp.set_body(json);
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    
+    int port = (argc > 1) ? std::stoi(argv[1]) : 8080;
+    std::cout << "Starting server on port " << port << std::endl;
 
     // create router and add few demo routes
     Router router;
@@ -128,7 +131,7 @@ int main() {
     router.add_route("GET", "/api/users", json_users_handler);
     router.add_route("GET", "/api/status", json_status_handler);
 
-    Server server(8080, router);
+    Server server(port, router);
     server.start();
 
     return 0;

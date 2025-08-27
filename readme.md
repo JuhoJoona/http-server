@@ -1,3 +1,6 @@
+# 🚀 Custom HTTP Server
+
+A high-performance, event-driven HTTP server built in C++17 with kqueue event handling.
 
 ## 📋 Prerequisites
 
@@ -23,20 +26,23 @@ make
 
 ### Run the server
 ```bash
+# Run on default port 8080
 ./http-server
+
+# Run on custom port
+./http-server 3000
 ```
 
-The server will start on port 8080 by default.
+The server will start on the specified port or default to 8080 if no port is provided.
 
-```
-
-## �� Configuration
+## ⚙️ Configuration
 
 ### Port Configuration
-The server port can be modified in `src/main.cpp`:
+The server port can be specified as a command-line argument:
 
-```cpp
-Server server(8080, router);  // Change 8080 to your desired port
+```bash
+./http-server 9000  # Start on port 9000
+./http-server        # Start on default port 8080
 ```
 
 ### Adding New Routes
@@ -91,7 +97,7 @@ void your_handler(const Request& req, Response& resp) {
 ab -n 1000 -c 10 http://localhost:8080/
 ```
 
-## �� Dependencies
+## 📦 Dependencies
 
 - **Standard Library**: C++17 standard library
 - **System Libraries**: 
@@ -100,13 +106,21 @@ ab -n 1000 -c 10 http://localhost:8080/
   - `<netinet/in.h>` - Internet address structures
   - `<unistd.h>` - POSIX system calls
 
+### Development Guidelines
+- Follow C++17 best practices
+- Maintain consistent code style
+- Add appropriate error handling
+- Include comments for complex logic
+- Test thoroughly before submitting
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## �� Acknowledgments
+## 🙏 Acknowledgments
 
 - Built with modern C++17 features
+- Inspired by high-performance web servers like nginx
 - Uses kqueue for efficient event handling on Unix-like systems
 
 ---
