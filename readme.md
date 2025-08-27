@@ -100,14 +100,6 @@ ab -n 1000 -c 10 http://localhost:8080/
   - `<netinet/in.h>` - Internet address structures
   - `<unistd.h>` - POSIX system calls
 
-
-### Development Guidelines
-- Follow C++17 best practices
-- Maintain consistent code style
-- Add appropriate error handling
-- Include comments for complex logic
-- Test thoroughly before submitting
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -115,7 +107,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## �� Acknowledgments
 
 - Built with modern C++17 features
-- Inspired by high-performance web servers like nginx
 - Uses kqueue for efficient event handling on Unix-like systems
 
 ---
