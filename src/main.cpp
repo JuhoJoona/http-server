@@ -3,6 +3,8 @@
 #include <arpa/inet.h>    
 #include <unistd.h>       
 #include <iostream>
+#include <stdexcept>
+#include <utility>
 #include "../include/net/server.hpp"
 #include "../include/http/router.hpp"
 

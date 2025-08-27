@@ -69,8 +69,6 @@ void Connection::read() {
         return;
     }
     
-    std::cout << "Received " << request.method << " request for " << request.path << std::endl;
-    
     Response response = router.route(request);
     std::string responseStr = response.to_string();
     
@@ -120,7 +118,9 @@ bool Connection::isCompleteHttpRequest(const std::string& data) {
                 if (data.length() < body_start + content_length) {
                     return false;
                 }
-            } catch (const std::exception&) {
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing content length: " << e.what() << std::endl;
+                return false;
             }
         }
     }

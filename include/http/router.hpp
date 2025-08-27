@@ -15,7 +15,6 @@ public:
     
     void add_route(const std::string& method, const std::string& path, Handler handler);
     Response route(const Request& req) const;
-    void handle_request(Request& request, Response& response);
 
 private:
     std::unordered_map<std::string, Handler> routes_;
