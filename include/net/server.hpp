@@ -27,7 +27,7 @@ private:
   int sockfd;
   sockaddr_in address;
   int port;
-  std::unique_ptr<EventLoop> eventLoop; // Platform-specific implementation
+  std::unique_ptr<EventLoop> eventLoopImpl; // Platform-specific implementation
   Router &router;
   std::map<int, std::shared_ptr<Connection>> connections;
 

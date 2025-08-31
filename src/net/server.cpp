@@ -3,6 +3,8 @@
 #include "../../include/http/router.hpp"
 #include "../../include/net/connection.hpp"
 #include "../../include/net/connection_event.hpp"
+#include <sys/epoll.h>
+#include <fcntl.h>
 #include <iostream>
 #include <memory>
 
@@ -17,14 +19,17 @@ Server::Server(int port, Router &router) : port(port), router(router) {
   // set socket options
   int opt = 1;
   setsockopt(this->sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  
+  // Set socket to non-blocking mode for epoll
+  int flags = fcntl(this->sockfd, F_GETFL, 0);
+  fcntl(this->sockfd, F_SETFL, flags | O_NONBLOCK);
 
   // bind socket to ip and port
-  sockaddr_in address;
-  address.sin_family = AF_INET;
-  address.sin_addr.s_addr = INADDR_ANY;
-  address.sin_port = htons(port); // Use the port parameter
+  this->address.sin_family = AF_INET;
+  this->address.sin_addr.s_addr = INADDR_ANY;
+  this->address.sin_port = htons(port); // Use the port parameter
 
-  if (bind(this->sockfd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+  if (bind(this->sockfd, (struct sockaddr *)&this->address, sizeof(this->address)) < 0) {
     perror("bind failed");
     close(this->sockfd);
     throw std::runtime_error("Failed to bind socket");
@@ -38,13 +43,13 @@ Server::Server(int port, Router &router) : port(port), router(router) {
   }
 
   // Create platform-specific event loop
-  eventLoop = EventLoopFactory::createEventLoop();
-  if (!eventLoop) {
+      eventLoopImpl = EventLoopFactory::createEventLoop();
+    if (!eventLoopImpl) {
     throw std::runtime_error("Event loop creation failed");
   }
 
   // Register server socket with event loop
-  if (!eventLoop->addSocket(this->sockfd, EventLoop::READ_EVENT)) {
+      if (!eventLoopImpl->addSocket(this->sockfd, EventLoop::READ_EVENT)) {
     throw std::runtime_error(
         "Failed to register server socket with event loop");
   }
@@ -66,10 +71,10 @@ void Server::stop() {
 
 void Server::eventLoop() {
   const int MAX_EVENTS = 64;
-  void *events[MAX_EVENTS]; // Platform-agnostic events
+  epoll_event events[MAX_EVENTS]; // Use epoll_event directly
 
   while (true) {
-    int n = eventLoop->waitForEvents(events, MAX_EVENTS);
+    int n = eventLoopImpl->waitForEvents(events, MAX_EVENTS);
     if (n == -1) {
       std::cerr << "Event loop error" << std::endl;
       continue;
@@ -77,13 +82,13 @@ void Server::eventLoop() {
 
     for (int i = 0; i < n; i++) {
       // Convert platform-specific event to ConnectionEvent
-      ConnectionEvent event = convertToConnectionEvent(events[i]);
+      ConnectionEvent event = convertToConnectionEvent(&events[i]);
 
       if (event.ident == static_cast<uintptr_t>(this->sockfd)) {
         int client_fd = accept(this->sockfd, nullptr, nullptr);
         if (client_fd != -1) {
           auto connection =
-              std::make_shared<Connection>(client_fd, *eventLoop, router);
+              std::make_shared<Connection>(client_fd, *eventLoopImpl, router);
           connections[client_fd] = connection;
         }
       } else {
@@ -104,9 +109,33 @@ void Server::eventLoop() {
 
 // Helper method to convert platform-specific events to ConnectionEvent
 ConnectionEvent Server::convertToConnectionEvent(void *platformEvent) {
-  // This will be implemented differently for each platform
-  // For now, return a basic event structure
+  if (!platformEvent) {
+    std::cerr << "Error: platformEvent is null" << std::endl;
+    ConnectionEvent event;
+    event.ident = 0;
+    event.filter = ConnectionEvent::READ;
+    return event;
+  }
+  
+  epoll_event *epollEvent = static_cast<epoll_event*>(platformEvent);
+  if (!epollEvent) {
+    std::cerr << "Error: Failed to cast platformEvent to epoll_event" << std::endl;
+    ConnectionEvent event;
+    event.ident = 0;
+    event.filter = ConnectionEvent::READ;
+    return event;
+  }
+  
   ConnectionEvent event;
-  // Platform-specific conversion logic will go here
+  event.ident = epollEvent->data.fd;
+  
+  if (epollEvent->events & EPOLLIN) {
+    event.filter = ConnectionEvent::READ;
+  } else if (epollEvent->events & EPOLLOUT) {
+    event.filter = ConnectionEvent::WRITE;
+  } else {
+    event.filter = ConnectionEvent::READ; // Default to read
+  }
+  
   return event;
 }

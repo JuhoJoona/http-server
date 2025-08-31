@@ -8,10 +8,10 @@ include_directories(include)
 
 #platform specific libraries
 if(APPLE OR CMAKE_SYSTEM_NAME MATCHES "BSD")
-    set(PLATFORM_SOURCES src/util/kqueue_loop.cpp)
+    set(PLATFORM_SOURCES src/eventloop/kqueue_loop.cpp)
     add_definitions(-DUSE_KQUEUE)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(PLATFORM_SOURCES src/util/epoll_loop.cpp)
+    set(PLATFORM_SOURCES src/eventloop/epoll_loop.cpp)
     add_definitions(-DUSE_EPOLL)
 else()
     message(FATAL_ERROR "Unsupported platform: ${CMAKE_SYSTEM_NAME}")
@@ -24,5 +24,6 @@ add_executable(http-server
     src/net/connection.cpp
     src/http/router.cpp
     src/http/parser.cpp
+    src/eventloop/event_loop_factory.cpp
     ${PLATFORM_SOURCES}
 )

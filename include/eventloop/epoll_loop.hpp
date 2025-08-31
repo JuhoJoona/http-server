@@ -15,7 +15,7 @@ public:
   bool addSocket(int fd, int events) override;
   bool removeSocket(int fd) override;
   bool modifySocket(int fd, int events) override;
-  int waitForEvents(void *events, int maxEvents, int timeout = -1) override;
+  int waitForEvents(epoll_event *events, int maxEvents, int timeout = -1) override;
 
 private:
   int epfd;

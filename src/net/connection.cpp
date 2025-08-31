@@ -3,7 +3,6 @@
 #include <cstring>
 #include <errno.h>
 #include <iostream>
-#include <sys/event.h>
 
 Connection::Connection(int sockfd, EventLoop &eventLoop, Router &router)
     : sockfd(sockfd), eventLoop(eventLoop), router(router), closed(false) {
@@ -17,7 +16,7 @@ Connection::~Connection() {
 }
 
 void Connection::handleEvent(const ConnectionEvent &event) {
-  if (event.filter == EventLoop::READ_EVENT) {
+  if (event.filter == ConnectionEvent::READ) {
     read();
   }
 }
