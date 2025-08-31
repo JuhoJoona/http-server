@@ -1,35 +1,38 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include "../eventloop/event_loop.hpp"
+#include "connection.hpp"
+#include "connection_event.hpp"
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <iostream>
 #include <map>
 #include <memory>
-#include "connection.hpp"
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 // Forward declaration
 class Router;
 
 class Server {
-    public:
-        Server(int port, Router& router);
-        ~Server();
-        void start();
-        void stop();
+public:
+  Server(int port, Router &router);
+  ~Server();
+  void start();
+  void stop();
+  void eventLoop();
 
-        void eventLoop();
+private:
+  int sockfd;
+  sockaddr_in address;
+  int port;
+  std::unique_ptr<EventLoop> eventLoopImpl; // Platform-specific implementation
+  Router &router;
+  std::map<int, std::shared_ptr<Connection>> connections;
 
-        int sockfd;
-        sockaddr_in address;
-        int port;
-        int kq;
-        Router& router;
-        
-        std::map<int, std::shared_ptr<Connection> > connections;
-
+  // Helper method to convert platform-specific events
+  ConnectionEvent convertToConnectionEvent(void *platformEvent);
 };
 
 #endif
