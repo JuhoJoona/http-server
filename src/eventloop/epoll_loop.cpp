@@ -28,8 +28,8 @@ bool EpollLoop::modifySocket(int fd, int events) {
     return epoll_ctl(epfd, EPOLL_CTL_MOD, fd, &event) == 0;
 }
 
-int EpollLoop::waitForEvents(epoll_event *events, int maxEvents, int timeout) {
-    return epoll_wait(epfd, events, maxEvents, timeout);
+int EpollLoop::waitForEvents(void *events, int maxEvents, int timeout) {
+    return epoll_wait(epfd, static_cast<epoll_event*>(events), maxEvents, timeout);
 }
 
 EpollLoop::~EpollLoop() {

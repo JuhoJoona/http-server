@@ -3,10 +3,16 @@
 #include "../../include/http/router.hpp"
 #include "../../include/net/connection.hpp"
 #include "../../include/net/connection_event.hpp"
-#include <sys/epoll.h>
 #include <fcntl.h>
 #include <iostream>
 #include <memory>
+
+// Platform-specific includes
+#ifdef __linux__
+#include <sys/epoll.h>
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+#include <sys/event.h>
+#endif
 
 Server::Server(int port, Router &router) : port(port), router(router) {
   // create socket first
@@ -71,7 +77,13 @@ void Server::stop() {
 
 void Server::eventLoop() {
   const int MAX_EVENTS = 64;
-  epoll_event events[MAX_EVENTS]; // Use epoll_event directly
+  
+  // Platform-specific event buffer
+  #ifdef __linux__
+  epoll_event events[MAX_EVENTS];
+  #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+  struct kevent events[MAX_EVENTS];
+  #endif
 
   while (true) {
     int n = eventLoopImpl->waitForEvents(events, MAX_EVENTS);
@@ -117,16 +129,17 @@ ConnectionEvent Server::convertToConnectionEvent(void *platformEvent) {
     return event;
   }
   
+  ConnectionEvent event;
+  
+  #ifdef __linux__
   epoll_event *epollEvent = static_cast<epoll_event*>(platformEvent);
   if (!epollEvent) {
     std::cerr << "Error: Failed to cast platformEvent to epoll_event" << std::endl;
-    ConnectionEvent event;
     event.ident = 0;
     event.filter = ConnectionEvent::READ;
     return event;
   }
   
-  ConnectionEvent event;
   event.ident = epollEvent->data.fd;
   
   if (epollEvent->events & EPOLLIN) {
@@ -136,6 +149,29 @@ ConnectionEvent Server::convertToConnectionEvent(void *platformEvent) {
   } else {
     event.filter = ConnectionEvent::READ; // Default to read
   }
+  
+  #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__DragonFly__)
+  struct kevent *kev = static_cast<struct kevent*>(platformEvent);
+  if (!kev) {
+    std::cerr << "Error: Failed to cast platformEvent to kevent" << std::endl;
+    event.ident = 0;
+    event.filter = ConnectionEvent::READ;
+    return event;
+  }
+  
+  event.ident = kev->ident;
+  
+  if (kev->filter == EVFILT_READ) {
+    event.filter = ConnectionEvent::READ;
+  } else if (kev->filter == EVFILT_WRITE) {
+    event.filter = ConnectionEvent::WRITE;
+  } else {
+    event.filter = ConnectionEvent::READ; // Default to read
+  }
+  
+  #else
+  #error "Unsupported platform"
+  #endif
   
   return event;
 }

@@ -2,7 +2,7 @@
 #define KQUEUE_LOOP_HPP
 
 // Only compile on macOS/BSD systems that support kqueue
-#ifdef __APPLE__ || defined(__FreeBSD__) || defined(__NetBSD__) ||             \
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
     defined(__OpenBSD__) || defined(__DragonFly__)
 
 #include "event_loop.hpp"
