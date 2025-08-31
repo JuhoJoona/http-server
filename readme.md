@@ -1,12 +1,15 @@
 # 🚀 Custom HTTP Server
 
-A high-performance, event-driven HTTP server built in C++17 with kqueue event handling.
+A high-performance, event-driven HTTP server built in C++17 with automatic platform detection for optimal performance on both macOS and Linux.
 
 ## 📋 Prerequisites
 
 - **C++17** compatible compiler (GCC 7+, Clang 5+, or MSVC 2017+)
 - **CMake 3.10** or higher
-- **Unix-like operating system** (macOS, Linux, BSD)
+- **Supported Operating Systems**:
+  - **Linux** (x86_64, ARM64)
+  - **macOS** (Intel, Apple Silicon)
+  - **BSD variants** (FreeBSD, NetBSD, OpenBSD, DragonFly BSD)
 
 ## 🛠️ Building
 
@@ -23,6 +26,10 @@ cd build
 cmake ..
 make
 ```
+
+The build system automatically detects your platform and configures the appropriate event loop implementation:
+- **Linux**: Uses epoll for high-performance event handling
+- **macOS/BSD**: Uses kqueue for efficient event processing
 
 ### Run the server
 ```bash
@@ -69,7 +76,10 @@ void your_handler(const Request& req, Response& resp) {
 
 ## 🚀 Performance Features
 
-- **Event-Driven I/O**: Uses kqueue for efficient event handling
+- **Cross-Platform Event-Driven I/O**: 
+  - **Linux**: epoll-based event loop for maximum performance
+  - **macOS/BSD**: kqueue-based event loop for optimal efficiency
+- **Automatic Platform Detection**: Builds with the best event loop for your system
 - **Non-blocking Operations**: Handles multiple connections concurrently
 - **Memory Efficient**: Smart pointer management and proper resource cleanup
 - **HTTP Message Parsing**: Efficient parsing with proper boundary detection
@@ -85,7 +95,9 @@ void your_handler(const Request& req, Response& resp) {
 
 ### Network Layer
 - BSD socket implementation
-- kqueue event loop for scalability
+- **Platform-optimized event loops**:
+  - **Linux**: epoll for high-concurrency scenarios
+  - **macOS/BSD**: kqueue for efficient event processing
 - Proper error handling and resource cleanup
 - Connection state management
 
@@ -102,7 +114,8 @@ ab -n 1000 -c 10 http://localhost:8080/
 - **Standard Library**: C++17 standard library
 - **System Libraries**: 
   - `<sys/socket.h>` - BSD sockets
-  - `<sys/event.h>` - kqueue events
+  - **Linux**: `<sys/epoll.h>` - epoll events
+  - **macOS/BSD**: `<sys/event.h>` - kqueue events
   - `<netinet/in.h>` - Internet address structures
   - `<unistd.h>` - POSIX system calls
 
@@ -121,6 +134,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built with modern C++17 features
 - Inspired by high-performance web servers like nginx
-- Uses kqueue for efficient event handling on Unix-like systems
+- **Cross-platform design** with automatic platform detection
+- Uses epoll (Linux) and kqueue (macOS/BSD) for optimal performance on each platform
 
 ---
