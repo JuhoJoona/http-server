@@ -1,12 +1,8 @@
-#include <sys/socket.h>
-#include <netinet/in.h>   
-#include <arpa/inet.h>    
-#include <unistd.h>       
 #include <iostream>
 #include <stdexcept>
-#include <utility>
-#include "../include/net/server.hpp"
-#include "../include/http/router.hpp"
+#include <memory>
+#include "tcpserver/tcp_server.hpp"
+#include "http/http_connection_handler.hpp"
 
 void index_handler(const Request& req, Response& resp) {
     resp.set_body("Hello, world!");
@@ -122,7 +118,7 @@ void json_status_handler(const Request& req, Response& resp) {
 int main(int argc, char* argv[]) {
     
     int port = (argc > 1) ? std::stoi(argv[1]) : 8080;
-    std::cout << "Starting server on port " << port << std::endl;
+    std::cout << "Starting HTTP server on port " << port << std::endl;
 
     // create router and add few demo routes
     Router router;
@@ -131,7 +127,11 @@ int main(int argc, char* argv[]) {
     router.add_route("GET", "/api/users", json_users_handler);
     router.add_route("GET", "/api/status", json_status_handler);
 
-    Server server(port, router);
+    // create HTTP connection handler
+    auto httpHandler = std::make_shared<HttpConnectionHandler>(router);
+    
+    // create TCP server with HTTP handler
+    tcpserver::TcpServer server(port, httpHandler);
     server.start();
 
     return 0;
